@@ -1,5 +1,7 @@
 README.md
 pyproject.toml
+src/team3-ping-analytics/src/__init__.py
+src/team3-ping-analytics/src/sample.py
 src/team3_ping_analytics.egg-info/PKG-INFO
 src/team3_ping_analytics.egg-info/SOURCES.txt
 src/team3_ping_analytics.egg-info/dependency_links.txt
