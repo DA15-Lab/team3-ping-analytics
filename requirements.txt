@@ -548,7 +548,7 @@ tables==3.10.2
 tabulate==0.9.0
 tbb==2022.3.1
 tcmlib==1.5.0
--e git+https://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@github.com/DA15-Lab/team3-ping-analytics.git@bb9b7d378f406bb5ac8f4c60fe1b4c3fc6485abe#egg=team3_ping_analytics
+-e git+https://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@github.com/DA15-Lab/team3-ping-analytics.git@294b7826ba9f41b9c71a216c8c7334f92c8c6182#egg=team3_ping_analytics
 tenacity==9.1.4
 tensorboard==2.20.0
 tensorboard-data-server==0.7.2
