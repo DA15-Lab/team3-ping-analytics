@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = ""team3-ping-analytics""
+name = "team3-ping-analytics"
 version = "0.1.0"
 
 [tool.setuptools.packages.find]
