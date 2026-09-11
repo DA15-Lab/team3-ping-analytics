@@ -8,17 +8,17 @@ def module_test():
 
 import pandas as pd
 import numpy as np
+import os
 import json
 from functools import lru_cache
 
 path = '/content/drive/MyDrive/코드잇 3팀 고급 프로젝트/00_원본 csv/'
-clean_path = '/content/drive/MyDrive/코드잇 3팀 고급 프로젝트/01_전처리 완료된 csv'
 
 # 테이블별 전처리 함수
 @lru_cache(maxsize=None)
-def clean_accounts_user():
+def clean_accounts_user(path=path):
     df = pd.read_csv(
-        path + 'accounts_user.csv',
+        os.path.join(path, 'accounts_user.csv'),
         usecols=[
             'id',
             'created_at',
@@ -27,7 +27,8 @@ def clean_accounts_user():
             'ban_status',
             'is_push_on',
             'pending_chat',
-            'pending_votes'
+            'pending_votes',
+            'alarm_count'   # 여기로 옮겨옴
             ]
             )
 
@@ -36,6 +37,7 @@ def clean_accounts_user():
 
     # 데이터 타입 변경
     df['group_id'] = df['group_id'].astype(int)
+    df['created_at'] = pd.to_datetime(df['created_at'])
 
     # pending chat - 마이너스 값 삭제
     df = df[df['pending_chat'] >= 0].copy()
@@ -47,33 +49,27 @@ def clean_accounts_user():
     # 사용하지 않는 컬럼 삭제
     df = df.drop(columns=['pending_votes'])
 
-    # alarm 컬럼 추가
-    alarm = pd.read_csv(
-        path + 'accounts_user.csv',
-        usecols=['id', 'alarm_count']
-    )
-    df = df.merge(
-        alarm,
-        on='id',
-        how='left',
-        validate='one_to_one'
-    )
-
     # alarm_count - 238 초과 값을 238로 대체
     df.loc[df['alarm_count'] > 238, 'alarm_count'] = 238
 
+    # 컬럼 순서 변경
+    df = df[['id', 'gender', 'is_push_on', 'created_at', 'ban_status', 'pending_chat', 'group_id', 'alarm_count']]
+
+    # 인덱스 초기화
+    df = df.reset_index(drop=True)
+    
     return df
 
 
 
 @lru_cache(maxsize=None)
-def clean_accounts_group():
-    df = pd.read_csv(path + 'accounts_group.csv')
+def clean_accounts_group(path=path):
+    df = pd.read_csv(os.path.join(path, 'accounts_group.csv'))
 
     df = df[df['grade'].isin([1, 2, 3])].copy()
     df = df[~df['class_num'].isin([0, 41])].copy()
 
-    users = clean_accounts_user()
+    users = clean_accounts_user(path=path)
 
     group_users = (
         users
@@ -95,16 +91,19 @@ def clean_accounts_group():
     class20_zero = class20_check[class20_check['user_count'].isna()]
     df = df[~df['id'].isin(class20_zero['id'])].copy()
 
+    # 인덱스 초기화
+    df = df.reset_index(drop=True)
+
     return df
 
 
 
 @lru_cache(maxsize=None)
-def clean_accounts_school():
-    df = pd.read_csv(path + 'accounts_school.csv')
+def clean_accounts_school(path=path):
+    df = pd.read_csv(os.path.join(path, 'accounts_school.csv'))
 
-    users = clean_accounts_user()
-    groups = clean_accounts_group()
+    users = clean_accounts_user(path=path)
+    groups = clean_accounts_group(path=path)
 
     user_school = (
         users[['id', 'group_id']]
@@ -141,17 +140,20 @@ def clean_accounts_school():
 
     df = df[~df['id'].isin(delete_ids)].copy()
 
+    # 인덱스 초기화
+    df = df.reset_index(drop=True)
+
     return df
 
 
 
 @lru_cache(maxsize=None)
-def clean_accounts_nearbyschool():
-    df = pd.read_csv(path + 'accounts_nearbyschool.csv')
+def clean_accounts_nearbyschool(path=path):
+    df = pd.read_csv(os.path.join(path, 'accounts_nearbyschool.csv'))
 
-    users = clean_accounts_user()
-    groups = clean_accounts_group()
-    raw_schools = pd.read_csv(path + 'accounts_school.csv')
+    users = clean_accounts_user(path=path)
+    groups = clean_accounts_group(path=path)
+    raw_schools = pd.read_csv(os.path.join(path, 'accounts_school.csv'))
 
     df = df[
         ~df['school_id'].isin([5948, 5949]) &
@@ -198,12 +200,15 @@ def clean_accounts_nearbyschool():
         df['school_id'] != df['nearby_school_id']
     ].copy()
 
+    # 인덱스 초기화
+    df = df.reset_index(drop=True)
+
     return df
 
 
 
-def clean_polls_question():
-    df = pd.read_csv(path + 'polls_question.csv')
+def clean_polls_question(path=path):
+    df = pd.read_csv(os.path.join(path, 'polls_question.csv'))
 
     # 필수 컬럼 기준 결측치 제거
     df = (df
@@ -221,12 +226,15 @@ def clean_polls_question():
     df = df.sort_values(by='created_at', ascending=True)
     df = df.drop_duplicates(subset=['question_text'], keep='first')
 
+    # 인덱스 초기화
+    df = df.reset_index(drop=True)
+
     return df
 
 
 
-def clean_polls_questionpiece():
-    df = pd.read_csv(path + 'polls_questionpiece.csv')
+def clean_polls_questionpiece(path=path):
+    df = pd.read_csv(os.path.join(path, 'polls_questionpiece.csv'))
 
     # 필수 컬럼 기준 결측치 제거
     essential_cols = [
@@ -247,12 +255,15 @@ def clean_polls_questionpiece():
     if invalid_rows > 0:
         df = df[~((df['is_voted'] == 1) & (df['is_skipped'] == 1))]
 
+    # 인덱스 초기화
+    df = df.reset_index(drop=True)
+
     return df
 
 
 
-def clean_accounts_attendance():
-    df = pd.read_csv(path + 'accounts_attendance.csv')
+def clean_accounts_attendance(path=path):
+    df = pd.read_csv(os.path.join(path, 'accounts_attendance.csv'))
 
     attendance_base = df[
         ["id", "user_id", "attendance_date_list"]
@@ -329,15 +340,15 @@ def clean_accounts_attendance():
         attendance_long_export["attendance_date"]
         .dt.normalize()
     )
-
+    # 인덱스 초기화
     attendance_long_export = attendance_long_export.reset_index(drop=True)
 
     return attendance_long_export
 
 
 
-def clean_accounts_blockrecord():
-    df = pd.read_csv(path + 'accounts_blockrecord.csv')
+def clean_accounts_blockrecord(path=path):
+    df = pd.read_csv(os.path.join(path, 'accounts_blockrecord.csv'))
 
     # 날짜형으로 변경
     df["created_at"] = pd.to_datetime(df["created_at"])
@@ -495,12 +506,15 @@ def clean_accounts_blockrecord():
         .apply(collection_to_json)
     )
 
+    # 인덱스 초기화
+    block_event_export = block_event_export.reset_index(drop=True)
+
     return block_event_export
 
 
 
-def clean_polls_questionset():
-    df = pd.read_csv(path + 'polls_questionset.csv')
+def clean_polls_questionset(path=path):
+    df = pd.read_csv(os.path.join(path, 'polls_questionset.csv'))
 
     # 전처리용 테이블 생성
     questionset_base = (
@@ -632,14 +646,17 @@ def clean_polls_questionset():
 
     questionset_export = questionset_clean.copy()
 
+    # 인덱스 초기화
+    questionset_export = questionset_export.reset_index(drop=True)
+
     return questionset_export
 
 
 
-def clean_accounts_paymenthistory():
-    df = pd.read_csv(path + 'accounts_paymenthistory.csv')
+def clean_accounts_paymenthistory(path=path):
+    df = pd.read_csv(os.path.join(path, 'accounts_paymenthistory.csv'))
 
-    # 데이터 타입 변경
+    # 데이터타입 변경
     # created_at: object -> datetime
     df['created_at'] = pd.to_datetime(df['created_at'])
 
@@ -648,12 +665,15 @@ def clean_accounts_paymenthistory():
         subset=df.columns.difference(['id']),keep='first')
     )
 
+    # 인덱스 초기화
+    df = df.reset_index(drop=True)
+
     return df
 
 
 
-def clean_accounts_userquestionrecord():
-    df = pd.read_csv(path + 'accounts_userquestionrecord.csv')
+def clean_accounts_userquestionrecord(path=path):
+    df = pd.read_csv(os.path.join(path, 'accounts_userquestionrecord.csv'))
 
     # 데이터타입 변경
     # created_at: object -> datetime
@@ -664,46 +684,60 @@ def clean_accounts_userquestionrecord():
     cond = (df['has_read'] == 0) & (df['opened_times'] == 1)
     df = df[~cond].copy()
 
+    # 인덱스 초기화
+    df = df.reset_index(drop=True)
+
     return df
 
 
 
-def clean_polls_usercandidate():
-    df = pd.read_csv(path + 'polls_usercandidate.csv')
+def clean_polls_usercandidate(path=path):
+    df = pd.read_csv(os.path.join(path, 'polls_usercandidate.csv'))
 
     # created_at 문자열에서 datetime 타입으로 변환
     df['created_at'] = pd.to_datetime(df['created_at'])
 
-    return df
-
-
-
-def clean_accounts_user_contacts():
-    df = pd.read_csv(path + 'accounts_user_contacts.csv')
+    # 인덱스 초기화
+    df = df.reset_index(drop=True)
 
     return df
 
 
 
-def clean_accounts_friendrequest():
-    df = pd.read_csv(path + 'accounts_friendrequest.csv')
+def clean_accounts_user_contacts(path=path):
+    df = pd.read_csv(os.path.join(path, 'accounts_user_contacts.csv'))
+
+    # 인덱스 초기화
+    df = df.reset_index(drop=True)
+
+    return df
+
+
+
+def clean_accounts_friendrequest(path=path):
+    df = pd.read_csv(os.path.join(path, 'accounts_friendrequest.csv'))
 
     # created_at, updated_at을 문자열에서 datetime 타입으로 변환
     df['created_at'] = pd.to_datetime(df['created_at'])
     df['updated_at'] = pd.to_datetime(df['updated_at'])
 
+    # 인덱스 초기화
+    df = df.reset_index(drop=True)
+
     return df
 
 
 
-def clean_accounts_userwithdraw():
-    df = pd.read_csv(path + 'accounts_userwithdraw.csv')
+def clean_accounts_userwithdraw(path=path):
+    df = pd.read_csv(os.path.join(path, 'accounts_userwithdraw.csv'))
 
     # admin/test 사유(테스트/운영 계정 탈퇴)는 분석 대상이 아니므로 제외
     df = df[~df['reason'].isin(['admin', 'test'])].copy()
 
     # created_at을 문자열에서 datetime 타입으로 변환
     df['created_at'] = pd.to_datetime(df['created_at'])
+
+    # 인덱스 초기화
     df = df.reset_index(drop=True)
 
     return df
@@ -715,8 +749,8 @@ def clean_accounts_userwithdraw():
 ########################################
 
 @lru_cache(maxsize=None)
-def clean_polls_questionset_piece():
-    df = pd.read_csv(path + 'polls_questionset.csv')
+def clean_polls_questionset_piece(path=path):
+    df = pd.read_csv(os.path.join(path, 'polls_questionset.csv'))
 
     # 전처리용 테이블 생성
     questionset_base = (
@@ -877,5 +911,8 @@ def clean_polls_questionset_piece():
         ]
         .copy()
     )
+
+    # 인덱스 초기화
+    questionset_piece_export = questionset_piece_export.reset_index(drop=True)
 
     return questionset_piece_export
